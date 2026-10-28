@@ -1,0 +1,9 @@
+[
+  {"name": "Asha Patil", "email": "asha@acme.in", "city": "Pune", "tags": ["Lead", "vip"]},
+  {"name": "Ravi Shah", "email": " RAVI@Globex.com", "city": "Mumbai", "tags": ["customer"]},
+  {"name": "   ", "email": "ghost@nowhere.io", "city": "Delhi", "tags": []},
+  {"name": "Meera Iyer", "email": "meera@initech.io"},
+  {"name": "Asha P", "email": "Asha@Acme.in ", "city": "Pune", "tags": ["vip", "VIP"]},
+  {"name": "John Doe", "email": "john.doe-at-contoso", "city": "Bengaluru", "tags": []},
+  {"name": "Lena Roy", "email": "lena@umbrella.co", "city": "Kolkata", "tags": "vip"}
+]
