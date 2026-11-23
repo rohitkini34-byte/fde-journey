@@ -1,0 +1,130 @@
+Shell commands and terminal output shown in the lesson (copy what you need; not a script to run as a whole).
+
+# ===== section: Concept 1: Modules, packages and the src layout =====
+# day12/cms-export/ after today: the "src layout"
+cms-export/                 # project folder: dashes are fine here
+    pyproject.toml          # project metadata, like package.json
+    uv.lock                 # exact versions, like package-lock.json
+    .venv/                  # this project's venv (never committed)
+    src/
+        cms_export/         # the import package: underscore, no dash
+            __init__.py     # makes the folder a package (like index.js)
+            __main__.py     # makes "python -m cms_export" work
+            cli.py          # argv, exit codes, logging setup
+            reader.py       # file in, entries out
+            transform.py    # pure rules: entry in, row out
+            writer.py       # rows in, CSV out
+            py.typed        # tells mypy "this package has type hints"
+    tests/
+        test_transform.py   # imports cms_export like a customer would
+        test_cli.py
+
+# ===== section: Concept 1: Modules, packages and the src layout =====
+# Day 12: src/ makes "works on my machine" fail early, on purpose
+$ uv init --package ticket-report   # a new project with the src layout
+$ cd ticket-report
+$ python3 -c "import ticket_report"
+# -> ModuleNotFoundError: No module named 'ticket_report'
+# Good: src/ is not on the import path, so nothing imports by accident.
+$ uv sync                           # creates .venv, installs the project
+# -> + ticket-report==0.1.0 (from file:///.../ticket-report)
+$ uv run python -c "import ticket_report; print(ticket_report.__file__)"
+# -> /.../ticket-report/src/ticket_report/__init__.py
+# An editable install: the venv points at src/, so edits apply at once.
+
+# ===== section: Concept 2: pyproject.toml, one file that describes the project =====
+# pyproject.toml for a small tool (in TOML, comments also start with #)
+[project]
+name = "ticket-report"         # the install name, like "name" in npm
+version = "0.1.0"              # the ONE place the version lives
+description = "Summarise support tickets from a CSV"
+readme = "README.md"
+requires-python = ">=3.12"     # like "engines" in package.json
+dependencies = [               # runtime needs, like "dependencies"
+    "requests>=2.34.2",        # a lower bound, not an exact pin
+]
+
+[project.scripts]              # like "bin" in package.json
+# command name = "package.module:function"
+ticket-report = "ticket_report.cli:main"
+
+[dependency-groups]            # dev-only tools, like "devDependencies"
+dev = ["mypy>=2.4.1", "pytest>=9.2.0", "ruff>=0.17.3"]
+
+[build-system]                 # the tool that turns src/ into a wheel
+requires = ["uv_build>=0.11.32,<0.12.0"]
+build-backend = "uv_build"
+
+[tool.ruff]                    # each tool reads only its own [tool.x]
+line-length = 88
+
+# ===== section: Concept 3: uv, one tool for Python, venvs, dependencies and builds =====
+# Day 12: the uv commands you will use every day (real output, trimmed)
+$ uv init --package ticket-report   # new project with the src/ layout
+# -> Initialized project `ticket-report`
+$ cd ticket-report
+$ uv add requests                   # edits pyproject, locks, installs
+# -> Creating virtual environment at: .venv
+# -> + requests==2.34.2             (plus its 4 dependencies)
+$ uv add --dev pytest               # goes into [dependency-groups] dev
+$ uv tree --depth 1                 # what depends on what
+# -> ticket-report v0.1.0
+# -> ├── requests v2.34.2
+# -> └── pytest v9.2.0 (group: dev)
+$ uv run ticket-report              # runs inside .venv: no "activate"
+# -> Hello from ticket-report!
+$ uv sync --locked                  # install EXACTLY what uv.lock says
+$ uv lock --upgrade-package requests   # move one package, on purpose
+$ uv build                          # sdist and wheel into dist/
+# -> Successfully built dist/ticket_report-0.1.0.tar.gz
+# -> Successfully built dist/ticket_report-0.1.0-py3-none-any.whl
+$ uvx ruff --version                # run a tool once, like npx
+# -> ruff 0.17.3
+
+# ===== section: Hands-on task (about 2.5 hours): the cms-export package =====
+# day12/ as you get it (git pull on main first)
+day12/
+    legacy_cms_export.py     # the customer's script: read, do not edit
+    export_sample.jsonl      # 9 lines: blank, broken, draft, archived...
+    dsa.py                   # today's two DSA problems
+    day12_notes.ipynb        # runnable examples from this session
+    cms-export/              # YOUR project (Part A makes it one)
+        .gitignore           # given: .venv/, dist/, out/ and caches
+        src/cms_export/      # __init__, __main__, py.typed given;
+                             # cli, reader, transform, writer and
+                             # logging_setup are starters with TODOs
+        tests/               # 2 given test files + data/ sample
+
+# Part A, starting from the repo root
+$ cd day12/cms-export
+$ uv init --package          # adds pyproject.toml, README, .python-version
+$ uv add --dev pytest ruff mypy
+$ uv run pytest -q           # red at first: every TODO raises
+# -> 10 failed, 1 passed   (the ExportStats test: it is given)
+
+# ===== section: Hands-on task (about 2.5 hours): the cms-export package =====
+# What a correct run looks like (inside day12/cms-export). Each log line
+# starts with a time such as 2026-11-05T08:00:01, cut here to fit.
+$ uv run cms-export ../export_sample.jsonl out/posts.csv
+# -> WARNING cms_export.reader: skipping line 6: Expecting ',' delimiter
+# -> WARNING cms_export.transform: blt006 has no locale, using en-us
+# -> INFO cms_export.cli: read 7 entries, 5 published, bad lines: [6]
+# -> INFO cms_export.cli: wrote 5 rows to out/posts.csv
+$ uv run cms-export -v ../export_sample.jsonl out/posts.csv
+# -> adds DEBUG cms_export.cli: skipping blt003: status draft
+# -> and  DEBUG cms_export.cli: skipping blt007: status archived
+$ uv run cms-export -q ../export_sample.jsonl out/posts.csv
+# -> only the two WARNING lines
+$ uv run cms-export missing.jsonl out.csv; echo $?
+# -> ERROR cms_export.cli: export file not found: missing.jsonl
+# -> 1
+$ uv run python -m cms_export --version
+# -> cms-export 0.1.0
+
+# Part D: build, then install into a fresh venv OUTSIDE the project
+$ uv build
+# -> Successfully built dist/cms_export-0.1.0-py3-none-any.whl
+$ uv venv ~/fresh-venv
+$ uv pip install --python ~/fresh-venv dist/cms_export-0.1.0-py3-none-any.whl
+$ ~/fresh-venv/bin/cms-export --version   # Windows: Scripts, not bin
+# -> cms-export 0.1.0

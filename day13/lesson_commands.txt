@@ -1,0 +1,31 @@
+Shell commands and terminal output shown in the lesson (copy what you need; not a script to run as a whole).
+
+# ===== section: Hands-on task (about 2.5 hours): day13/async_export.py =====
+# day13/ as you get it
+day13/
+    mock_cms.py           # the fake customer CMS (given, do not edit)
+    cms_common.py         # key, CSV, flags, logging (given)
+    sync_export.py        # the sequential baseline (given, read it)
+    async_export.py       # YOUR task: 4 TODO functions
+    test_async_export.py  # 8 given tests (do not edit)
+    dsa.py                # today's two DSA problems
+    day13_notes.ipynb     # runnable examples from this session
+
+# ===== section: Hands-on task (about 2.5 hours): day13/async_export.py =====
+# What a correct run looks like (times differ a little on your laptop)
+$ python sync_export.py article
+  2623ms WARNING sync_export: HTTP 503 on skip=12, retrying in 0.5s ...
+  6139ms INFO sync_export: fetched 30 entries in 6.1s
+$ python async_export.py article
+  1643ms WARNING async_export: HTTP 503 on skip=12, retrying in 0.5s ...
+  2653ms INFO async_export: fetched 30 entries in 2.6s (max 3 in flight)
+  2654ms INFO async_export: wrote 30 rows to output/article.csv
+$ curl -s http://127.0.0.1:8013/stats
+{"requests": 15, "in_flight": 0, "max_in_flight": 3, "rejected_429": 0}
+# The failure cases: one ERROR line, the right exit code, no traceback
+$ CMS_API_KEY=wrong python async_export.py blog_post; echo $?
+   640ms ERROR async_export: HTTP 401: Invalid API key
+1
+$ python async_export.py product; echo $?
+   649ms ERROR async_export: HTTP 422: Content type 'product' was not found
+1

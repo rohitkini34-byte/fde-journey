@@ -1,0 +1,131 @@
+Shell commands and terminal output shown in the lesson (copy what you need; not a script to run as a whole).
+
+# ===== section: Today at a glance =====
+# One-time setup for Day 22, run inside day22/ (macOS / Linux shell).
+source ../day06/.venv/bin/activate  # or any venv that has requests
+python3 -m pip install requests      # skip if Day 6 already did this
+
+# Terminal 1: start the mock API and leave it running.
+python3 mock_api.py
+# -> Acme mock API on http://127.0.0.1:8022  (Ctrl+C to stop)
+
+# Terminal 2: check that it answers.
+curl http://127.0.0.1:8022/health
+# -> {
+# ->   "status": "ok"
+# -> }
+
+# ===== section: Concept 1: What HTTP is, and how to see it with curl =====
+# -v (verbose) shows the request curl sent (">") and the response
+# headers it got back ("<"). This is the first thing to run when an
+# integration "does not work".
+curl -v http://127.0.0.1:8022/health
+# Output, trimmed to the HTTP part:
+# -> > GET /health HTTP/1.1            <- request line: method path version
+# -> > Host: 127.0.0.1:8022            <- request headers start here
+# -> > User-Agent: curl/8.5.0
+# -> > Accept: */*
+# -> >                                 <- blank line: request is complete
+# -> < HTTP/1.1 200 OK                 <- status line: version code reason
+# -> < Server: AcmeMock/1.0 Python/3.13.18
+# -> < X-Request-Id: req_37a4f7bf      <- quote this id in bug reports
+# -> < Content-Type: application/json  <- how to read the body
+# -> < Content-Length: 20
+# -> <                                 <- blank line, then the body
+# -> {"status": "ok"}  (printed over three lines)
+
+# ===== section: Concept 2: Resources, URLs and methods (the REST part) =====
+# The five REST verbs against one resource, with only the status shown.
+# -s hides the progress bar, -o /dev/null throws the body away and
+# -w prints a template after the response: here just the status code.
+BASE=http://127.0.0.1:8022/v1
+KEY="X-API-Key: acme-dev-key"
+JSON="Content-Type: application/json"
+
+# Read the collection (safe: changes nothing)
+curl -s -o /dev/null -w "%{http_code}\n" "$BASE/entries" -H "$KEY"
+# -> 200
+
+# Create: POST to the collection; the server picks the uid
+curl -s -i -X POST "$BASE/entries" -H "$KEY" -H "$JSON" \
+  -d '{"title": "Navratri lookbook", "content_type": "blog_post"}' \
+  | grep -E "^HTTP|^Location"
+# -> HTTP/1.1 201 Created
+# -> Location: /v1/entries/blt009     <- where the new entry lives
+
+# Partial update: PATCH sends only the fields that change
+curl -s -X PATCH "$BASE/entries/blt009" -H "$KEY" -H "$JSON" \
+  -d '{"title": "Navratri lookbook 2026"}' | grep -E '"(title|version)"'
+# ->   "title": "Navratri lookbook 2026",
+# ->   "version": 2,
+
+# An action that is not plain CRUD: a sub-resource you POST to
+curl -s -X POST "$BASE/entries/blt009/publish" -H "$KEY" \
+  | grep '"status"'
+# ->   "status": "published",
+
+# Delete twice: the result on the server is the same, the code is not
+curl -s -o /dev/null -w "%{http_code}\n" -X DELETE \
+  "$BASE/entries/blt009" -H "$KEY"
+# -> 204    <- deleted, no body
+curl -s -o /dev/null -w "%{http_code}\n" -X DELETE \
+  "$BASE/entries/blt009" -H "$KEY"
+# -> 404    <- already gone; still idempotent (the state did not change)
+
+# ===== section: Concept 4: Headers: content types, auth, caching and safe updates =====
+# Conditional requests: ETag for caching, If-Match for safe updates.
+BASE=http://127.0.0.1:8022/v1
+KEY="X-API-Key: acme-dev-key"
+
+# 1. First read: the server labels this version with an ETag.
+curl -s -i "$BASE/entries/blt004" -H "$KEY" | grep -E "^HTTP|^ETag"
+# -> HTTP/1.1 200 OK
+# -> ETag: "v1"
+
+# 2. Ask again "only if it changed". Same version -> 304, empty body.
+#    Single quotes keep the double quotes, which are part of the ETag.
+curl -s -i "$BASE/entries/blt004" -H "$KEY" -H 'If-None-Match: "v1"' \
+  | head -1
+# -> HTTP/1.1 304 Not Modified
+
+# 3. Someone else edits the entry, so its version becomes v2.
+curl -s -o /dev/null -X PATCH "$BASE/entries/blt004" -H "$KEY" \
+  -H "Content-Type: application/json" -d '{"title": "Returns, made easy"}'
+
+# 4. Our update still says "only if it is still v1". It is refused
+#    instead of silently overwriting their change (a "lost update").
+curl -s -X PATCH "$BASE/entries/blt004" -H "$KEY" -H 'If-Match: "v1"' \
+  -H "Content-Type: application/json" -d '{"title": "My old edit"}' \
+  | grep -E '"(status|detail)"'
+# ->   "status": 412,
+# ->   "detail": "Entry changed: current version is \"v2\"",
+
+# ===== section: Check your understanding (predict first, then run) =====
+# Six predictions. Each line prints only the status code.
+BASE=http://127.0.0.1:8022/v1
+KEY="X-API-Key: acme-dev-key"
+W="%{http_code}\n"
+
+# Q1: a read-only key tries to delete an entry
+curl -s -o /dev/null -w "$W" -X DELETE "$BASE/entries/blt003" \
+  -H "X-API-Key: acme-readonly-key"
+
+# Q2: a JSON body sent with -d but no Content-Type header
+curl -s -o /dev/null -w "$W" -X POST "$BASE/entries" -H "$KEY" \
+  -d '{"title": "Holi colours", "content_type": "blog_post"}'
+
+# Q3: a page size that is not a number
+curl -s -o /dev/null -w "$W" "$BASE/entries?limit=ten" -H "$KEY"
+
+# Q4: PUT on an item (also print the Allow header: use -i and grep)
+curl -s -i -X PUT "$BASE/entries/blt001" -H "$KEY" \
+  | grep -E "^HTTP|^Allow"
+
+# Q5: publish blt007, then ask for it "only if it is not v1"
+curl -s -o /dev/null -X POST "$BASE/entries/blt007/publish" -H "$KEY"
+curl -s -o /dev/null -w "$W" "$BASE/entries/blt007" -H "$KEY" \
+  -H 'If-None-Match: "v1"'
+
+# Q6: the key header written in lowercase
+curl -s -o /dev/null -w "$W" "$BASE/entries/blt001" \
+  -H "x-api-key: acme-dev-key"

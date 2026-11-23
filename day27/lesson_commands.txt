@@ -1,0 +1,30 @@
+Shell commands and terminal output shown in the lesson (copy what you need; not a script to run as a whole).
+
+# ===== section: Today at a glance =====
+# Check the tools before you start (macOS / Linux shell).
+uv --version          # -> uv 0.11.x (any recent version is fine)
+python3 --version     # -> Python 3.12 or newer
+# The examples need fastapi and httpx: reuse the Day 26 venv for them.
+source ../day26/.venv/bin/activate  # Windows: ..\day26\.venv\Scripts\activate
+python3 -c "import fastapi, httpx; print('ok')"
+# -> ok
+
+# ===== section: Concept 1: One project, not five folders =====
+# Turn the day27/content-sync-api folder into a uv project (run inside it).
+# --package: src layout + build backend, so "uv sync" INSTALLS your code.
+# --vcs none: you are already inside the fde-journey git repo.
+uv init --package --vcs none --name content-sync-api --python 3.12 .
+uv add "fastapi[standard]" "psycopg[binary,pool]" pydantic-settings httpx
+uv add --dev pytest ruff mypy   # tools: not needed by the running service
+uv tree --depth 1
+# -> content-sync-api v0.1.0
+# -> ├── fastapi[standard] v0.165.0
+# -> ├── httpx v0.28.1
+# -> ├── psycopg[binary, pool] v3.3.9
+# -> ├── pydantic-settings v2.16.3
+# -> ├── mypy v2.4.1 (group: dev)
+# -> ├── pytest v9.2.0 (group: dev)
+# -> └── ruff v0.17.6 (group: dev)
+# Your exact version numbers may be newer; the shape is what matters.
+uv run python -c "import content_sync_api; print('import ok')"
+# -> import ok   uv run uses the project's own .venv, no "activate" needed

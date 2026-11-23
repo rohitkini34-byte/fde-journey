@@ -1,0 +1,8 @@
+Shell commands and terminal output shown in the lesson (copy what you need; not a script to run as a whole).
+
+# ===== section: Check your understanding (predict first, then run) =====
+# Question 6: predict all three output lines, then run each line.
+printf 'INFO ok\nERROR db\nERROR db\nWARN slow\n' > mini.log
+grep ERROR mini.log | sort | uniq -c
+grep -q TIMEOUT mini.log && echo found || echo "not found"
+echo $?  # the exit code of the LAST command that ran

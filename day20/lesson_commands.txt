@@ -1,0 +1,56 @@
+Shell commands and terminal output shown in the lesson (copy what you need; not a script to run as a whole).
+
+# ===== section: Today at a glance =====
+# One-time setup for Day 20, run inside day20/ (macOS / Linux shell).
+python3 -m venv .venv          # a fresh virtual environment (Day 6)
+source .venv/bin/activate      # Windows: .venv\Scripts\activate
+pip install -r requirements.txt   # psycopg 3, SQLAlchemy 2, pandas, pytest
+export DATABASE_URL=postgresql://localhost/fde   # same database as Day 15
+psql "$DATABASE_URL" -f setup.sql        # lesson tables for the concepts
+psql "$DATABASE_URL" -f task_data.sql    # Acme's tables for the task
+
+# ===== section: Hands-on task (about 2 hours): day20/analytics.sql and report.py =====
+# day20/ layout for today's task. Everything except the SELECT 'TODO'
+# lines in analytics.sql, the TODO functions in report.py and dsa.py
+# is given.
+day20/
+    setup.sql            # lesson tables for the concept examples
+    task_data.sql        # Acme's cms_versions (20 saves of 12 entries)
+                         # and cms_daily_views (4 weeks, 280 rows)
+    analytics.sql        # YOUR 8 queries, A1 to A8
+    test_analytics.py    # 8 given tests: runs each query, checks rows
+    report.py            # YOUR weekly report: 5 TODOs
+    test_report.py       # 14 given tests (9 need no database)
+    requirements.txt     # psycopg 3, SQLAlchemy 2, pandas, pytest
+    dsa.py               # today's two DSA problems
+    day20_notes.ipynb    # today's examples, already run
+
+# ===== section: Hands-on task (about 2 hours): day20/analytics.sql and report.py =====
+# Steps 2 to 5: what correct runs look like.
+$ python -m pytest -q test_analytics.py
+........                                                     [100%]
+8 passed in 0.13s
+$ python report.py
+rows: 280, entries: 10, since: 2026-10-05
+              entries  total_views  avg_per_entry
+content_type
+campaign            4        48541        12135.2
+article             2        13664         6832.0
+page                4        13082         3270.5
+wrote summary_by_type.csv and weekly_views.csv
+$ python report.py 2026-10-26
+rows: 70, entries: 10, since: 2026-10-26
+              entries  total_views  avg_per_entry
+content_type
+campaign            4        16722         4180.5
+article             2         4716         2358.0
+page                4         3786          946.5
+wrote summary_by_type.csv and weekly_views.csv
+$ python report.py 2027-01-01
+no views since 2027-01-01
+$ DATABASE_URL=postgresql://localhost:5999/fde python report.py
+error: cannot reach the database; is Postgres running?
+$ echo $?
+1
+$ python -m pytest -q
+22 passed in 0.66s

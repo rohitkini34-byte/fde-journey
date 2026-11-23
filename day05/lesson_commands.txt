@@ -1,0 +1,35 @@
+Shell commands and terminal output shown in the lesson (copy what you need; not a script to run as a whole).
+
+# ===== section: Concept 5: Type hints and enums =====
+# Terminal: run the file, then ask mypy to check it without running it
+$ python hints.py
+28
+Traceback (most recent call last):
+  ...
+TypeError: unsupported operand type(s) for +: 'int' and 'str'
+
+$ pip install mypy        # Day 6 covers pip and virtual environments
+$ mypy --hide-error-codes hints.py
+hints.py:7: error: List item 0 has incompatible type "str"; expected "int"
+hints.py:7: error: List item 1 has incompatible type "str"; expected "int"
+Found 2 errors in 1 file (checked 1 source file)
+
+# ===== section: Hands-on task (about 2.5 hours): day05/support_ticket.py =====
+# day05/ layout for today's task
+day05/
+    support_ticket.py      # the module: enums, SupportTicket, TicketQueue
+    tickets_export.json    # the messy helpdesk export (given, do not edit)
+    dsa.py                 # today's two DSA problems
+    day05_notes.ipynb      # runnable examples from this session
+
+# ===== section: Hands-on task (about 2.5 hours): day05/support_ticket.py =====
+# What a correct run looks like (run from the repo root)
+$ python day05/support_ticket.py
+rejected: record 3: subject is empty
+rejected: record 4: unknown priority 'critical'
+rejected: record 6: email 'john.doe-at-contoso' has no '@'
+rejected: record 8: duplicate id 'T-1002'
+loaded: 4, rejected: 4
+by status: {'open': 2, 'pending': 1, 'closed': 1}
+overdue: T-1002 (high, 50h), T-1001 (urgent, 10h)
+round trip ok: True

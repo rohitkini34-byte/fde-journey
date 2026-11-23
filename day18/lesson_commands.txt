@@ -1,0 +1,48 @@
+Shell commands and terminal output shown in the lesson (copy what you need; not a script to run as a whole).
+
+# ===== section: Today at a glance =====
+# One-time setup for Day 18, run inside day18/ (macOS / Linux shell).
+python3 -m venv .venv  # a fresh virtual environment (Day 6)
+source .venv/bin/activate  # Windows: .venv\Scripts\activate
+pip install -r requirements.txt  # psycopg[binary] 3.3 and pytest
+# The connection string, used by every example and by your loader.
+# FDE TIP: in a real project this line lives in .env, never in code.
+export DATABASE_URL=postgresql://localhost/fde
+psql -d fde -v ON_ERROR_STOP=1 -f setup.sql  # the demo_ lesson tables
+python -c "import psycopg; print(psycopg.__version__)"  # -> 3.3.8
+
+# ===== section: Hands-on task (about 2 hours): day18/load_export.py =====
+# day18/ layout for today's task (everything except load_export.py's
+# function bodies and dsa.py is given)
+day18/
+    setup.sql  # lesson tables for the concept examples
+    schema.sql  # blog_authors, blog_tags, blog_posts, blog_post_tags
+    posts.csv  # 8 posts, the Day 6 export format
+    posts_bad.csv  # line 7 has word_count "about 1000"
+    posts_dup.csv  # line 8 repeats uid blt003 after 6 good posts
+    check_load.sql  # shows what a correct load looks like
+    load_export.py  # YOUR loader: six functions with hints
+    test_load_export.py  # 19 given tests, do not edit
+    requirements.txt  # psycopg[binary] and pytest, pinned
+    dsa.py  # today's two DSA problems
+    day18_notes.ipynb  # every example from this session, with outputs
+
+# ===== section: Hands-on task (about 2 hours): day18/load_export.py =====
+# What correct runs look like (reset first with schema.sql)
+$ python load_export.py posts.csv --dry-run
+parsed 8 posts from posts.csv (dry run, nothing loaded)
+$ python load_export.py posts_bad.csv
+error: line 7: word_count 'about 1000' is not a whole number; nothing was
+loaded  # one line on stderr; exit code 1; no connection was opened
+$ python load_export.py posts_dup.csv
+error: line 8: post blt003 is already in the database; nothing was loaded
+# exit 1. Six posts were inserted before line 8, and all were rolled back:
+# SELECT count(*) FROM blog_posts;  -> 0
+$ python load_export.py posts.csv
+loaded 8 posts, 4 authors, 8 tags, 10 tag links  # exit 0
+$ python load_export.py posts.csv
+error: line 2: post blt001 is already in the database; nothing was loaded
+# exit 1, and the 8 posts from the previous run are untouched
+$ unset DATABASE_URL; python load_export.py posts.csv
+error: DATABASE_URL is not set. Run: export DATABASE_URL=postgresql://...
+# exit 2 (the real message ends with localhost/fde; shortened to fit here)

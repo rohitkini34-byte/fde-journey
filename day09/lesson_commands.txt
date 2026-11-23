@@ -1,0 +1,240 @@
+Shell commands and terminal output shown in the lesson (copy what you need; not a script to run as a whole).
+
+# ===== section: Recap (2 minutes, from memory) =====
+# Recap: predict the output of every line, then run it.
+git switch -c recap-demo  # new branch from main, and switch to it
+echo "a" > a.txt && git add a.txt && git commit -q -m "Add a.txt"
+git switch main
+git branch --merged  # branches whose commits are all inside main
+git merge --ff-only recap-demo  # merge only if it can be a fast-forward
+git branch --merged
+git branch -d recap-demo  # -d refuses to delete unmerged work
+
+# ===== section: Concept 1: Paths and the file system =====
+# Concept 1: moving around. Type each line and compare with the comments.
+cd ~/fde-journey  # ~ = your home folder, so this works from anywhere
+pwd  # print working directory
+# -> /Users/rohit/fde-journey
+ls  # list the cwd (hidden files are not shown)
+# -> README.md  day04  day09
+cd day09  # relative: day09 inside the cwd
+pwd
+# -> /Users/rohit/fde-journey/day09
+ls ../day04  # .. = the parent folder, so this lists a sibling folder
+# -> contact_store.py  dsa.py  main.py
+cd ..  # up one level
+pwd
+# -> /Users/rohit/fde-journey
+cd /Users/rohit/fde-journey/day09  # absolute: same result from anywhere
+cd -  # jump back to the previous folder, and print it
+# -> /Users/rohit/fde-journey
+ls -a  # -a also shows names that start with a dot (hidden files)
+# -> .  ..  .git  .gitignore  README.md  day04  day09
+# FDE TIP: press Tab to complete names, and type cd day then Tab twice
+# to see every match. It is faster and you never mistype a path.
+# GOTCHA: names with spaces need quotes: cd "My Projects", or the shell
+# splits them into two words.
+
+# ===== section: Concept 2: stdin, stdout, stderr, redirection and pipes =====
+# Concept 2: redirection. Run inside day09/, where server.log lives.
+echo "hello"  # stdout goes to the screen
+# -> hello
+echo "hello" > out.txt  # nothing printed: stdout went into the file
+cat out.txt  # cat prints a file
+# -> hello
+echo "again" >> out.txt  # >> appends instead of emptying the file
+cat out.txt
+# -> hello
+# -> again
+ls missing.txt > out.txt  # the error still reaches the screen...
+# -> ls: cannot access 'missing.txt': No such file or directory
+cat out.txt  # ...because errors use stderr; > only moved stdout
+# -> (nothing: > emptied the file and ls wrote nothing to stdout)
+ls missing.txt 2> err.txt  # 2> moves stderr into a file
+cat err.txt
+# -> ls: cannot access 'missing.txt': No such file or directory
+ls server.log missing.txt > all.txt 2>&1  # both streams, one file
+# GOTCHA: order matters. "2>&1 > all.txt" sends errors to the screen.
+wc -l < server.log  # < feeds the file to stdin: count lines
+# -> 37
+cat server.log | wc -l  # the same, through a pipe
+# -> 37
+# macOS prints the ls error as: ls: missing.txt: No such file or directory
+
+# ===== section: Concept 3: grep and friends, answering questions about a log =====
+# Concept 3: questions about server.log, one pipeline each.
+grep -c ERROR server.log  # how many ERROR lines?
+# -> 9
+grep -n "timed out" server.log  # which lines, with line numbers?
+# -> 7:2026-11-01T22:00:11Z ERROR [sync] request timed out after 10s page=3
+# -> 8:2026-11-01T22:00:21Z ERROR [sync] request timed out after 10s ...
+grep -v -e INFO -e DEBUG server.log | head -3  # everything else, first 3
+# -> 2026-11-01T22:00:09Z WARN [sync] slow response status=200 took=3904ms
+# -> 2026-11-01T22:00:11Z ERROR [sync] request timed out after 10s page=3
+# -> 2026-11-01T22:00:21Z ERROR [sync] request timed out after 10s ...
+grep -E "status=(429|5[0-9]{2})" server.log  # rate limits and 5xx
+# -> 2026-11-01T22:15:01Z ERROR [webhook] downstream search API status=503
+# -> 2026-11-01T22:15:03Z ERROR [webhook] downstream search API ...
+# -> 2026-11-01T22:40:07Z ERROR [sync] status=429 rate limited, waiting 2s
+# Which component has the most errors? The classic counting pipeline:
+grep ERROR server.log | cut -d " " -f 3 | sort | uniq -c | sort -rn
+# ->       4 [webhook]
+# ->       3 [sync]
+# ->       2 [export]
+grep -o "status=[0-9]*" server.log | sort | uniq -c | sort -rn
+# ->       8 status=200
+# ->       2 status=503
+# ->       2 status=401
+# ->       1 status=429
+# (ties such as 503 and 401 may print in a different order on a Mac)
+
+# ===== section: Concept 3: grep and friends, answering questions about a log =====
+# Concept 3: uniq without sort counts runs, not totals.
+grep ERROR server.log | cut -d " " -f 3 | uniq -c
+# ->       2 [sync]
+# ->       1 [webhook]
+# ->       2 [export]
+# ->       2 [webhook]
+# ->       1 [sync]
+# ->       1 [webhook]
+# Real data is messy: count field 2 (the level) over EVERY line.
+cut -d " " -f 2 server.log | sort | uniq -c
+# ->       1               (line 17 is blank)
+# ->       2 DEBUG
+# ->       1 EROR          (a typo from an old logger: not a real level)
+# ->       9 ERROR
+# ->      19 INFO
+# ->       4 WARN
+# ->       1 log           (line 23: "--- log rotated by logrotate ---")
+# FDE TIP: run this "count the field" check on any new log before you
+# write a parser for it. It shows the junk lines your code must survive.
+
+# ===== section: Concept 4: Environment variables and PATH =====
+# Concept 4: shell variables, exported variables, one-shot variables.
+echo "$HOME"  # a variable every shell has
+# -> /Users/rohit
+STACK=blog-prod  # GOTCHA: no spaces around =, or the shell runs "STACK"
+echo "$STACK"
+# -> blog-prod
+python3 -c 'import os; print(os.environ.get("STACK"))'
+# -> None          (a plain shell variable is not passed to children)
+export STACK  # now it is in the environment: children get a copy
+python3 -c 'import os; print(os.environ.get("STACK"))'
+# -> blog-prod
+LOG_LEVEL=DEBUG python3 -c 'import os; print(os.environ["LOG_LEVEL"])'
+# -> DEBUG         (set for that one command only)
+echo "${LOG_LEVEL:-not set}"  # :- gives a default when it is not set
+# -> not set
+echo 'single: $STACK'  # single quotes: no variable expansion
+# -> single: $STACK
+echo "double: $STACK"  # double quotes: expanded
+# -> double: blog-prod
+python3 -c 'import os; os.environ["STACK"] = "changed"'
+echo "$STACK"  # the child changed ITS copy, never the parent's
+# -> blog-prod
+# FDE TIP: env | sort lists everything; env | grep CS_ finds your keys.
+
+# ===== section: Concept 4: Environment variables and PATH =====
+# Concept 4: PATH decides which program runs. Run from the repo root.
+echo "$PATH" | tr ":" "\n"  # tr swaps each : for a new line
+# -> /usr/local/bin
+# -> /usr/bin
+# -> /bin
+# (your list is longer; with Homebrew it starts with /opt/homebrew/bin)
+which python3  # the first python3 found on PATH
+# -> /usr/local/bin/python3
+source .venv/bin/activate  # Day 6: activate the project's venv
+echo "$PATH" | tr ":" "\n" | head -2
+# -> /Users/rohit/fde-journey/.venv/bin     (added at the front)
+# -> /usr/local/bin
+which python3
+# -> /Users/rohit/fde-journey/.venv/bin/python3
+deactivate  # removes it from PATH again
+which python3
+# -> /usr/local/bin/python3
+# REMEMBER: "which X" first, whenever the wrong version seems to run.
+
+# ===== section: Concept 5: Exit codes, && and || =====
+# Concept 5: read $? right after the command you care about.
+ls server.log; echo "exit: $?"
+# -> server.log
+# -> exit: 0
+ls missing.txt 2>/dev/null; echo "exit: $?"
+# -> exit: 2          (macOS ls returns 1: any non-zero means failure)
+grep -q "status=500" server.log; echo "exit: $?"
+# -> exit: 1          (GOTCHA: grep returns 1 when nothing matches)
+nosuchtool 2>/dev/null; echo "exit: $?"
+# -> exit: 127        (command not found)
+python3 -c 'import sys; sys.exit(3)'; echo "exit: $?"
+# -> exit: 3
+python3 -c 'raise ValueError("bad row")' 2>/dev/null; echo "exit: $?"
+# -> exit: 1          (an uncaught exception always exits with 1)
+grep -q ERROR server.log && echo "errors found, alert"
+# -> errors found, alert
+grep -q "status=500" server.log || echo "no 500s"
+# -> no 500s
+cat missing.txt 2>/dev/null | wc -l; echo "exit: $?"
+# -> 0
+# -> exit: 0          (only wc's code: the failed cat is hidden)
+set -o pipefail  # now a pipeline fails if ANY part fails
+cat missing.txt 2>/dev/null | wc -l; echo "exit: $?"
+# -> 0
+# -> exit: 1
+
+# ===== section: Concept 6: Processes, signals and ports =====
+# Concept 6: start a server, see the port, hit the conflict, stop it.
+python3 -m http.server 8000 > server_out.txt 2>&1 &  # & = background
+echo "started PID $!"  # $! = PID of the job we just started
+# -> started PID 533         (your number will differ)
+curl -s -o /dev/null -w "%{http_code}\n" http://localhost:8000/server.log
+# -> 200                     (the server answered: file found)
+python3 -m http.server 8000  # a second server on the same port...
+# -> OSError: [Errno 98] Address already in use   (macOS: Errno 48)
+lsof -nP -iTCP:8000 -sTCP:LISTEN  # who is listening on port 8000?
+# -> COMMAND PID USER  FD TYPE DEVICE SIZE/OFF NODE NAME
+# -> python3 533 root  3u IPv4 2333   0t0      TCP  *:8000 (LISTEN)
+# (spacing trimmed; you will see your own PID and your user name)
+kill %1  # SIGTERM to background job 1 (or: kill 533)
+curl -s http://localhost:8000/; echo "curl exit: $?"
+# -> curl exit: 7            (7 = could not connect: nobody listening)
+# GOTCHA: kill -9 only when a plain kill fails. -9 gives the process no
+# chance to flush files or finish a request, so it can leave half-written
+# output behind (Day 4's atomic save exists because of this).
+
+# ===== section: Check your understanding (predict first, then run) =====
+# Check 1: what does cat print?
+echo "one" > c.txt; echo "two" > c.txt; cat c.txt
+# Check 2: what number is printed?
+grep ERROR server.log | grep -c sync
+# Check 3: what is printed, and what is the exit code?
+grep "status=999" server.log; echo "exit: $?"
+# Check 4: two lines. What are they?
+X=5 bash -c 'echo "inside: $X"'; echo "after: ${X:-unset}"
+# Check 5: which word is on the screen, and which is in o.txt?
+python3 -c 'import sys; print("out"); print("err", file=sys.stderr)' \
+    > o.txt
+cat o.txt
+
+# ===== section: Hands-on task (about 2.5 hours): day09/log_report.py =====
+# Part B: the target. Run from inside day09/.
+python3 log_report.py < server.log; echo "exit: $?"
+# stderr (the warnings come first):
+# -> warning: line 23: malformed, skipped
+# -> warning: line 30: malformed, skipped
+# stdout:
+# -> Log report
+# ->   lines read: 37
+# ->   parsed:     34
+# ->   skipped:    3
+# -> By level:
+# ->   ERROR  9
+# ->   WARN   4
+# ->   INFO   19
+# ->   DEBUG  2
+# -> Errors by component (top 3):
+# ->   webhook  4
+# ->   sync     3
+# ->   export   2
+# -> First error: 2026-11-01T22:00:11Z
+# -> Last error:  2026-11-01T22:45:00Z
+# -> exit: 1

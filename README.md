@@ -1,24 +1,11 @@
-# fde-journey
+# fde-journey: Day 4 to Day 30
 
-Forward Deployed Engineer prep: a 16-week plan that started on 22 Oct 2026.
-One folder per day, each holding that day's assignment scripts and a notes notebook with the outputs saved in it.
+One folder per day, same layout as the repo.
 
-| Day | Date | Topic | Files |
-|---|---|---|---|
-| 1 | 22 Oct | Setup, variables & types | `about_me.py`, `largest_of_three.py`, `day01_notes.ipynb` |
-| 2 | 23 Oct | Conditions, loops, functions | `study_tracker.py`, `dsa.py` (is_prime, vowel count), `day02_notes.ipynb` |
-| 3 | 27 Oct | Lists, tuples, dicts, sets, comprehensions | `contact_book.py`, `dsa.py` (Two Sum, first unique char), `day03_notes.ipynb` |
-| 4 | 28 Oct | Files, JSON, error handling, modules | — |
-| 5 | 29 Oct | Classes, dataclasses, type hints | — |
-| 6 | 30 Oct | venv, pip, requests, public APIs | — |
-| 7 | 31 Oct | Weekly review | — |
+| Days | What is in the folder | Source |
+|---|---|---|
+| 4 | contact_store.py, main.py, dsa.py, contacts_import.json, day04_notes.ipynb | Your GitHub repo (as pushed on 28 Oct) |
+| 5 to 29 | dayNN_notes.ipynb (full lesson + every code example), lesson_examples.py / .sql, lesson_commands.txt, TASK.md (hands-on task, DSA, quiz) | Rebuilt from the master Google Doc (Day 29 from its own doc) |
+| 30 | fetch.py, mock_cms.py, cms_entries.json, test_fetch.py, test_mine.py, dsa.py, day30_notes.ipynb | Today's starter files |
 
-## Running
-
-```bash
-cd day03
-python3 contact_book.py
-jupyter notebook day03_notes.ipynb
-```
-
-Scripts are run from inside their day folder. `about_me.py` and `study_tracker.py` ask for input.
+Note on Days 5 to 29: the starter .py files and given test files for those days were sent as separate zips by each day's run and were never pushed, so they could not be recovered here. Everything the doc contains is included: the lesson text, every code example (Python, SQL and shell) and each task brief with its acceptance criteria. The notebooks for these days are not executed, because several examples need Postgres, a running server or files from the original starter zips. If you still have those day zips, unzip them over these folders: no file names clash except the notes notebooks.

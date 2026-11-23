@@ -1,0 +1,17 @@
+Shell commands and terminal output shown in the lesson (copy what you need; not a script to run as a whole).
+
+# ===== section: Hands-on task (about 2.5 hours): retry decorator and streaming export =====
+# Streaming proof (acceptance 4): run inside day11/ once the task is done
+python3 make_big_export.py big_export.jsonl 200000
+# -> wrote 200000 lines to big_export.jsonl (50 MB)
+python3 -c "
+import tracemalloc
+from pathlib import Path
+import stream_export as s
+tracemalloc.start()  # starts counting every byte Python allocates
+r = s.run_export(Path('big_export.jsonl'), Path('big.csv'), 500)
+print(r['read'], len(r['bad_lines']), r['published'], r['batches'])
+print(tracemalloc.get_traced_memory()[1] // 1024, 'KB peak')
+"
+# -> 199960 40 180000 360
+# -> 577 KB peak      (your number will differ; it must stay under 5 MB)

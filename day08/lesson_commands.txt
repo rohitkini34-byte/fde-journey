@@ -1,0 +1,240 @@
+Shell commands and terminal output shown in the lesson (copy what you need; not a script to run as a whole).
+
+# ===== section: Concept 1: How Git thinks, snapshots and three areas =====
+# Concept 1: watch one file move through the three areas
+mkdir git-demo && cd git-demo  # a throwaway folder, outside fde-journey
+git init -b main  # new repository; -b main names the first branch
+echo 'print("v1")' > ticket.py  # create a file in the working tree
+git status --short
+# -> ?? ticket.py      (?? = untracked: Git does not know this file yet)
+git add ticket.py  # copy the file's current content into staging
+git status --short
+# -> A  ticket.py      (A in the left column = new file, staged)
+git commit -m "Add ticket script"  # staging becomes a snapshot
+# -> [main (root-commit) f8b34fd] Add ticket script
+echo 'print("v2")' > ticket.py  # edit the file again
+git status --short
+# -> " M ticket.py"    (M in the RIGHT column = changed, not staged)
+
+# ===== section: Concept 1: How Git thinks, snapshots and three areas =====
+# Concept 1: diff, diff --staged, log and restore
+git diff  # working tree vs staging: what you have NOT added yet
+# -> -print("v1")
+# -> +print("v2")
+git add ticket.py
+git diff  # prints nothing: working tree and staging now match
+git diff --staged  # staging vs last commit: what WILL be committed
+# -> -print("v1")
+# -> +print("v2")
+git commit -m "Print v2 from ticket script"
+git log --oneline  # newest first, one line per commit
+# -> 0013dac Print v2 from ticket script
+# -> f8b34fd Add ticket script
+echo 'oops' >> ticket.py  # a change you regret
+git restore ticket.py  # put the file back to its staged/committed state
+cat ticket.py
+# -> print("v2")
+# GOTCHA: restore throws away uncommitted edits for good. No undo.
+# REMEMBER: add = put it in the next snapshot; commit = save the snapshot
+
+# ===== section: Concept 2: Commits that tell a story =====
+# Concept 2: stage part of a file, write a message with a body, amend
+git add -p support_ticket.py  # y = stage this hunk, n = skip, q = quit
+git diff --staged --stat  # check what the commit will contain
+git commit  # no -m: opens your editor for a subject AND a body
+# Fixed a typo in the subject? Rewrite the last commit's message:
+git commit --amend -m "Validate ticket email in __post_init__"
+# GOTCHA: --amend makes a NEW commit (new hash). Only amend commits you
+# have not pushed yet, or the next push is rejected (see Concept 6).
+# FDE TIP: run "git config --global core.editor 'code --wait'" once, so
+# "git commit" opens VS Code instead of vim.
+
+# ===== section: Concept 2: Commits that tell a story =====
+Add retry with backoff to fetch_page
+
+The customer's CMS returns 503 under load. Retry 429 and 5xx up to
+3 times (0.5s, 1s, 2s) and honour Retry-After when it is sent.
+401 and 422 still fail at once, because repeating them cannot work.
+
+# ===== section: Concept 3: .gitignore and secrets =====
+# Concept 3: a .gitignore for fde-journey (save it at the repo root)
+# Python byproducts, rebuilt automatically on every machine
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+# Virtual environments, like node_modules: rebuilt from requirements.txt
+.venv/
+# Secrets: never commit them. The real key lives only on your machine.
+.env
+# Output your scripts generate (Day 4 store, Day 6 CSVs)
+output/
+day04/data/
+# Tool caches you will meet on Days 10 and 12
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+# macOS folder metadata
+.DS_Store
+
+# ===== section: Concept 3: .gitignore and secrets =====
+# Concept 3: check the rules, and untrack a file committed by mistake
+git status --short  # before the .gitignore exists
+# -> ?? .env
+# -> ?? __pycache__/
+# -> ?? day06/
+git status --short  # after saving a .gitignore with the rules above
+# -> ?? .gitignore     (.env, __pycache__ and output are now hidden)
+git check-ignore -v .env day06/output/posts.csv
+# -> .gitignore:5:.env      .env
+# -> .gitignore:7:output/   day06/output/posts.csv
+# (file:line:pattern, then the path; line numbers are from the demo file)
+git check-ignore -v README.md  # prints nothing, exit code 1: not ignored
+# config.local was committed BEFORE it was added to .gitignore:
+git status --short
+# -> " M config.local"   (still tracked: ignoring came too late)
+git rm --cached config.local  # untrack it; the file stays on disk
+git status --short
+# -> D  config.local    (the next commit removes it from the repo)
+
+# ===== section: Concept 4: Branches and merging =====
+# Concept 4: a branch is a label; a fast-forward merge just moves it
+git branch  # list branches; * marks the one you are on
+# -> * main
+git switch -c day05-ticket  # create a branch AND switch to it
+# -> Switched to a new branch 'day05-ticket'
+echo 'class Ticket: ...' > ticket.py
+git add ticket.py && git commit -m "Add Ticket class"
+git log --oneline --graph --all --decorate  # labels in brackets
+# -> * 265bc0f (HEAD -> day05-ticket) Add Ticket class
+# -> * c26c6e1 (main) Add README
+git switch main  # ticket.py disappears from the folder: main lacks it
+git merge day05-ticket  # main has not moved, so this is a fast-forward
+# -> Fast-forward
+git log --oneline --decorate
+# -> 265bc0f (HEAD -> main, day05-ticket) Add Ticket class
+# -> c26c6e1 Add README
+git branch -d day05-ticket  # delete the label; the commits stay
+
+# ===== section: Concept 4: Branches and merging =====
+# Concept 4: both branches edit the same line, so Git asks you to choose
+git merge day06-export
+# -> CONFLICT (content): Merge conflict in README.md
+git status --short
+# -> UU README.md      (UU = unmerged: both sides changed it)
+cat README.md
+# -> | Day | Files |
+# -> | 5 | - |
+# -> <<<<<<< HEAD
+# -> | 6 | export.py, dsa.py |
+# -> =======
+# -> | 6 | cms_export.py |
+# -> >>>>>>> day06-export
+# Between <<<<<<< and ======= is your current branch (HEAD); between
+# ======= and >>>>>>> is the branch coming in. Edit the file so it holds
+# the final text you want, delete all three marker lines, then:
+git add README.md  # tells Git "this conflict is resolved"
+git commit --no-edit  # finishes the merge with the default message
+git log --oneline --graph --decorate
+# -> *   b4f2d67 (HEAD -> main) Merge branch 'day06-export'
+# -> |\
+# -> | * 0075758 (day06-export) Fill Day 6 row in README
+# -> * | e988eb2 List Day 6 files
+# -> |/
+# -> * 265bc0f Add Ticket class
+# REMEMBER: a branch is a movable label; merging moves or joins labels
+
+# ===== section: Concept 5: Remotes and pull requests =====
+# Concept 5: a remote, and pushing a branch to it
+git remote -v  # where "origin" points (yours: github.com/rohitkini34-byte)
+# -> origin  .../origin.git (fetch)
+# -> origin  .../origin.git (push)
+git switch -c day06-export
+git push -u origin day06-export  # -u links local and remote branch
+# -> * [new branch]      day06-export -> day06-export
+# -> branch 'day06-export' set up to track 'origin/day06-export'.
+
+# ===== section: Concept 5: Remotes and pull requests =====
+# Concept 5: pull requests from the terminal with GitHub's gh tool
+brew install gh  # once (Windows: winget install GitHub.cli)
+gh auth login  # once: choose GitHub.com, HTTPS, log in with a browser
+gh pr create --draft --title "Day 6: CMS export CLI" --body-file pr.txt
+# --draft = "not ready yet, but look at the direction"
+gh pr ready  # mark the draft as ready for review
+gh pr view --web  # open the PR page in your browser
+gh pr merge --merge --delete-branch  # merge commit + delete the branch
+# FDE TIP: the same steps work in the GitHub web page. Use whichever you
+# like, but always read the "Files changed" tab before you merge.
+
+# ===== section: Concept 5: Remotes and pull requests =====
+What: one or two sentences on what this PR changes.
+Why: the problem it solves or the task it completes.
+How to test: the exact commands a reviewer runs, and what they should see.
+Open items: anything not finished yet, or "none".
+
+# ===== section: Concept 6: Rebase, and how to recover from mistakes =====
+# Concept 6: main moved while your branch waited; rebase onto it
+git fetch origin  # download new commits; your files do not change
+# ->    576becd..4aed7ba  main       -> origin/main
+git log --oneline --graph --all --decorate
+# -> * a8e048e (HEAD -> day06-export, origin/day06-export) Add cms_ex...
+# -> | * 4aed7ba (origin/main) Add Ticket class (#1)
+# -> |/
+# -> * 576becd (main) Add README
+git rebase origin/main  # replay my commit on top of the new main
+# -> Successfully rebased and updated refs/heads/day06-export.
+git log --oneline --graph --all --decorate
+# -> * 0cfe9ef (HEAD -> day06-export) Add cms_export CLI skeleton
+# -> * 4aed7ba (origin/main) Add Ticket class (#1)
+# -> | * a8e048e (origin/day06-export) Add cms_export CLI skeleton
+# -> |/
+# -> * 576becd (main) Add README
+# Same change, new hash: a8e048e became 0cfe9ef.
+git push
+# -> ! [rejected]        day06-export -> day06-export (non-fast-forward)
+git push --force-with-lease  # safe overwrite of MY branch on GitHub
+# -> + a8e048e...0cfe9ef day06-export -> day06-export (forced update)
+
+# ===== section: Concept 6: Rebase, and how to recover from mistakes =====
+# Concept 6: the reflog remembers where HEAD has been
+git reflog -n 4  # newest first
+# -> 0cfe9ef HEAD@{0}: rebase (finish): returning to refs/heads/day06-export
+# -> 0cfe9ef HEAD@{1}: rebase (pick): Add cms_export CLI skeleton
+# -> 4aed7ba HEAD@{2}: rebase (start): checkout origin/main
+# -> a8e048e HEAD@{3}: commit: Add cms_export CLI skeleton
+git branch rescue a8e048e  # put a label on the old commit to keep it
+# REMEMBER: rebase = same changes, new commits; never rebase shared work
+
+# ===== section: Check your understanding (predict first, then run) =====
+# Check 1: what does the last line print?
+echo x > notes.txt
+git add notes.txt
+echo y >> notes.txt  # change the file AFTER staging it
+git status --short
+
+# Check 2: which of the three paths are ignored?
+printf '*.csv\n!sample.csv\n' > .gitignore  # two rules, one exception
+mkdir -p out && touch data.csv sample.csv out/report.csv
+git check-ignore data.csv sample.csv out/report.csv
+
+# Check 3: a branch with two commits, then main gets one more commit
+git switch -c feature
+echo 1 > f1 && git add f1 && git commit -m "Add f1"
+echo 2 > f2 && git add f2 && git commit -m "Add f2"
+git log --oneline main..HEAD  # commits on HEAD that main does not have
+git switch main
+echo m > m && git add m && git commit -m "Add m"
+git switch feature
+git rebase main
+git log --oneline main..HEAD  # how many lines now? same hashes?
+
+# ===== section: Hands-on task (about 2.5 hours): Days 5 and 6 into main through two pull requests =====
+# Step 0: run once on your Mac
+git config --global user.name "Rohit Kini"
+# Use the email on your GitHub account, or the private noreply address
+# from GitHub > Settings > Emails (it looks like 12345+name@users...)
+git config --global user.email "you@example.com"
+git config --global core.editor "code --wait"  # commit messages in VS Code
+brew install gh && gh auth login
+cd ~/path/to/fde-journey  # your clone
+git switch main && git pull  # get today's day08/ folder
+git log -1 --format="%an <%ae>"  # the old commit keeps the old email

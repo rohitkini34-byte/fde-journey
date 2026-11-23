@@ -1,0 +1,33 @@
+Shell commands and terminal output shown in the lesson (copy what you need; not a script to run as a whole).
+
+# ===== section: Today at a glance =====
+# One-time setup for Day 23, inside day23/ (macOS / Linux shell).
+python3 -m venv .venv            # a fresh venv for this API (Day 6)
+source .venv/bin/activate        # Windows: .venv\Scripts\activate
+# The quotes stop the shell from reading [ ] as a pattern.
+# [standard] adds uvicorn (the server) and the "fastapi" command.
+python3 -m pip install "fastapi[standard]" pytest
+fastapi --version
+# -> FastAPI CLI version: 0.0.34   (yours may be newer; that is fine)
+python3 -c "import fastapi; print(fastapi.__version__)"
+# -> 0.163.1   (any 0.11x or newer works for today)
+
+# ===== section: Concept 1: What FastAPI is, and your first app =====
+# Terminal 1: run the app with auto-reload (restarts on every save,
+# like "npm run dev" with Vite). Save the code above as main.py first.
+fastapi dev main.py
+# -> Server started at http://127.0.0.1:8000
+# -> Documentation at http://127.0.0.1:8000/docs
+
+# Terminal 2: talk to it with Day 22's curl.
+curl -s -i http://127.0.0.1:8000/health
+# -> HTTP/1.1 200 OK
+# -> content-type: application/json
+# -> {"status":"ok"}
+curl -s http://127.0.0.1:8000/nope
+# -> {"detail":"Not Found"}            404, and you wrote no code for it
+curl -s -i -X POST http://127.0.0.1:8000/health | grep -iE "^HTTP|^allow"
+# -> HTTP/1.1 405 Method Not Allowed
+# -> allow: GET                        the Allow header, also for free
+# FDE TIP: in production you run "fastapi run main.py" (no reload, binds
+# 0.0.0.0). "dev" is for your laptop only.

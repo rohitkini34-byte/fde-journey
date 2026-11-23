@@ -1,0 +1,50 @@
+Shell commands and terminal output shown in the lesson (copy what you need; not a script to run as a whole).
+
+# ===== section: Today at a glance =====
+# One-time setup for Day 19, run inside day19/ (macOS / Linux shell).
+python3 -m venv .venv          # a fresh virtual environment (Day 6)
+source .venv/bin/activate      # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+export DATABASE_URL=postgresql://localhost/fde   # same database as Day 15
+psql "$DATABASE_URL" -f setup.sql   # lesson tables: about 2 seconds
+
+# ===== section: Concept 5: Migrations, schema changes as versioned files =====
+# Concept 5: the migrations folder for today's task. One numbered file
+# per change; the number decides the order; the name says what it does.
+day19/migrations/
+    001_create_cms_tables.sql   # given: authors, posts, tags, links
+    002_create_cms_views.sql    # given: daily views, no index yet
+    003_add_views_index.sql     # YOU write it, after measuring (Step 4)
+    004_title_not_blank.sql     # YOU write it: a new CHECK rule
+
+# The runner keeps a list of what already ran, in the database itself:
+#   schema_migrations
+#    version                    | applied_at
+#    001_create_cms_tables.sql  | 2026-11-12 09:14:03+05:30
+#    002_create_cms_views.sql   | 2026-11-12 09:14:03+05:30
+# Next run: 001 and 002 are in the list, so only 003 and 004 run.
+# REMEMBER: never edit a migration that has run anywhere. Add a new one.
+
+# ===== section: Hands-on task (about 2 hours): day19/upsert_loader.py =====
+# Steps 2 to 6: what correct runs look like, in order.
+$ psql "$DATABASE_URL" -f reset.sql
+$ python upsert_loader.py export_v1.json
+migrations applied: 001_create_cms_tables.sql, 002_create_cms_views.sql
+export_v1.json: inserted 6, updated 0, unchanged 0
+$ python upsert_loader.py export_v1.json     # the re-run that broke Day 18
+migrations: up to date
+export_v1.json: inserted 0, updated 0, unchanged 6
+$ python upsert_loader.py export_v2.json
+migrations: up to date
+export_v2.json: inserted 1, updated 2, unchanged 4
+$ python upsert_loader.py export_bad.json; echo "exit $?"
+migrations: up to date
+error: entry blt008 breaks rule cms_posts_status_check; nothing was loaded
+exit 1
+$ psql "$DATABASE_URL" -f seed_views.sql
+$ psql "$DATABASE_URL" -f slow_query.sql     # BEFORE: paste into notes
+#   (write migrations 003 and 004 now)
+$ python upsert_loader.py export_v2.json
+migrations applied: 003_add_views_index.sql, 004_title_not_blank.sql
+export_v2.json: inserted 0, updated 0, unchanged 7
+$ psql "$DATABASE_URL" -f slow_query.sql     # AFTER: paste into notes

@@ -1,0 +1,123 @@
+Shell commands and terminal output shown in the lesson (copy what you need; not a script to run as a whole).
+
+# ===== section: Recap (2 minutes, from memory) =====
+# Recap: predict, then run inside day09/ (answers at the end)
+python3 log_report.py < server.log > report.txt 2> warnings.txt
+echo "exit: $?"
+wc -l < warnings.txt
+# Two terminal tabs. Tab 1:
+export CMS_API_KEY=demo-key-123
+# Tab 2 (opened earlier), inside day06/:
+python3 cms_export.py blog_post  # does it find the key?
+
+# ===== section: Concept 1: pytest, assert and reading a failure =====
+# test_basics.py: pytest finds this file because its name starts with test_
+from cms_utils import reading_minutes, slugify
+
+
+def test_slugify_lowercases_and_joins_words():
+    # Arrange: the input a content editor would type
+    title = "  Getting Started with SSO "
+    # Act: call the code under test once
+    result = slugify(title)
+    # Assert: a plain assert; pytest shows both sides if it fails
+    assert result == "getting-started-with-sso"
+
+
+def test_slugify_drops_punctuation():
+    title = 'Pricing FAQ: "Starter" vs "Pro"'
+    assert slugify(title) == "pricing-faq-starter-vs-pro"
+
+
+def test_reading_minutes_rounds_up():
+    assert reading_minutes(201) == 2  # 1.005 minutes rounds UP to 2
+
+
+def test_reading_minutes_is_at_least_one():
+    assert reading_minutes(0) == 1
+
+# --- run it, in the terminal, inside the same folder ---
+python3 -m pytest test_basics.py -v
+# -> collected 4 items
+# -> test_basics.py::test_slugify_lowercases_and_joins_words PASSED [ 25%]
+# -> test_basics.py::test_slugify_drops_punctuation PASSED          [ 50%]
+# -> test_basics.py::test_reading_minutes_rounds_up PASSED          [ 75%]
+# -> test_basics.py::test_reading_minutes_is_at_least_one PASSED    [100%]
+# -> ============ 4 passed in 0.02s ============
+
+# ===== section: Concept 3: Parametrize, one test over a table of cases =====
+# test_param.py: one test function, many input/expected pairs
+import pytest
+
+from cms_utils import reading_minutes, slugify
+
+
+@pytest.mark.parametrize(
+    "title, expected",  # names of the arguments, as one string
+    [
+        ("Hello World", "hello-world"),
+        ("  spaces   everywhere ", "spaces-everywhere"),
+        ("Q4 2026: roadmap!", "q4-2026-roadmap"),
+        ("---", ""),  # edge case: nothing left after cleaning
+    ],
+)
+def test_slugify_cases(title, expected):
+    assert slugify(title) == expected
+
+
+@pytest.mark.parametrize(
+    "words, minutes",
+    [(0, 1), (1, 1), (200, 1), (201, 2), (1000, 5)],
+    ids=["zero", "one", "exact", "just-over", "long"],  # readable names
+)
+def test_reading_minutes_boundaries(words, minutes):
+    assert reading_minutes(words) == minutes
+
+# --- python3 -m pytest test_param.py -v ---
+# -> collected 9 items         (4 slug cases + 5 minute cases)
+# -> test_slugify_cases[Hello World-hello-world] PASSED
+# -> test_slugify_cases[  spaces   everywhere -spaces-everywhere] PASSED
+# -> test_slugify_cases[Q4 2026: roadmap!-q4-2026-roadmap] PASSED
+# -> test_slugify_cases[----] PASSED
+# -> test_reading_minutes_boundaries[zero] PASSED
+# -> ...[one], [exact], [just-over], [long] PASSED
+# -> ============ 9 passed in 0.02s ============
+# --- run only some cases by name with -k ---
+python3 -m pytest test_param.py -q -k "just-over or spaces"
+# -> 2 passed, 7 deselected in 0.01s
+
+# ===== section: Concept 6: Test layout, running tests and trusting them =====
+# day10/pytest.ini: settings pytest reads when you run it on day10/
+[pytest]
+# folders to put on the import path, so "import contact_store" works
+pythonpath = ../day04 ../day06
+# test files to look for (this is also pytest's default)
+python_files = test_*.py
+
+# --- running tests, from the repo root ---
+python3 -m pytest day10            # every test file in day10/
+python3 -m pytest day10 -v         # one line per test, with its name
+python3 -m pytest day10 -x         # stop at the first failure
+python3 -m pytest day10 --lf       # rerun only the tests that failed last
+python3 -m pytest day10 -k merge   # only tests whose name contains merge
+python3 -m pytest day10 --co -q    # list the tests, run nothing
+# one single test, by its "node id" (file::function)
+python3 -m pytest day10/test_contact_store.py::test_merge_skips_dupes
+
+# --- exit codes, Day 9 style ---
+python3 -m pytest -q; echo "exit: $?"
+# -> exit: 0 when all passed, 1 when any test failed,
+# -> exit: 5 when no tests were collected (a typo in a file name?)
+python3 -m pytest -q && git push   # push only if the suite is green
+
+# ===== section: Hands-on task (about 2.5 hours): day10 test suites =====
+# Hands-on target: from the repo root, when both parts are done
+python3 -m pytest day10 -v
+# -> collected 30+ items       (your exact count will differ)
+# -> day10/test_contact_store.py::test_validate_cleans_good_record PASSED
+# -> ...
+# -> day10/test_cms_export.py::test_fetch_page_retries_503 PASSED
+# -> ============ 30 passed in 0.15s ============
+python3 -m pytest day10 --durations=3   # no test should take 0.1 s+
+python3 -m pytest day10 -q; echo "exit: $?"
+# -> exit: 0

@@ -1,0 +1,58 @@
+Shell commands and terminal output shown in the lesson (copy what you need; not a script to run as a whole).
+
+# ===== section: Concept 1: Getting every local folder onto GitHub =====
+# Step 1: see where you stand. Nothing here changes any file.
+cd ~/fde-journey          # your repo folder (use your own path)
+git status                # untracked folders = never committed
+git log --oneline -5      # your last commits, newest first
+git fetch origin          # download GitHub's view; changes nothing local
+git status                # now says "ahead", "behind" or "up to date"
+# "ahead of 'origin/main' by 3 commits" = committed, NOT pushed yet
+git log --oneline origin/main..main   # exactly which commits those are
+
+# ===== section: Concept 1: Getting every local folder onto GitHub =====
+# Step 2, the zip route: one day folder at a time, one commit per day.
+unzip -l ~/Downloads/day05.zip       # look inside first: expect day05/...
+unzip -n ~/Downloads/day05.zip -d .  # -n: never overwrite a file you have
+git status                           # expect: ?? day05/
+git add day05                        # stage ONLY that folder
+git commit -m "Day 5: classes and dataclasses (starters)"
+# repeat for each day you have, oldest first, then push once
+git push origin main
+# GOTCHA: never "git push --force" after a rejected push. Run
+# "git pull --rebase origin main" and push again instead.
+
+# ===== section: Concept 1: Getting every local folder onto GitHub =====
+# Step 3: keep junk out of git, then check what GitHub will receive.
+# .gitignore lists paths git should never track (one pattern per line)
+printf '.venv/\n__pycache__/\n.pytest_cache/\nday04/data/\n' >> .gitignore
+git add .gitignore
+git commit -m "Ignore venvs, caches and generated data"
+git push origin main
+git status        # -> "Your branch is up to date with 'origin/main'."
+# FDE TIP: open the repo on github.com and check the latest commit date.
+# If GitHub does not show it, the customer (or recruiter) cannot see it.
+
+# ===== section: Concept 4: Your first pytest file for real code =====
+python -m pytest -q
+# -> .......F                                    [100%]
+# -> >  assert validate_asset(GOOD)["title"] == " Hero "
+# -> E  AssertionError: assert 'Hero' == ' Hero '
+# -> 1 failed, 7 passed in 0.02s
+# 8 tests: the parametrize table alone adds 4 of them
+echo $?   # -> 1   (any failure makes the exit code 1)
+
+# ===== section: Concept 5: Red, green, commit, and an honest status =====
+# Red, green, commit for Day 4, from inside day29/
+python -m pytest -q -x        # -x: stop at the first failure
+# -> FAILED test_day04.py::test_validate_cleans_a_good_record - ...
+# -> 1 failed in 0.04s      (red: validate_contact is still a TODO)
+python -m pytest -q -k validate   # -k: run only tests whose name matches
+# -> 11 failed, 10 deselected in 0.06s
+# ... implement validate_contact in day04/contact_store.py ...
+python -m pytest -q -k validate   # aim for: 1 failed, 10 passed
+# the 1 still red is test_validate_cleans_tags, your own TODO test
+python -m pytest -q --lf      # --lf: rerun only the tests that failed last
+git add ../day04/contact_store.py
+git commit -m "Day 4: validate_contact, 10 tests green"
+git push origin main          # push after every green step, not at the end

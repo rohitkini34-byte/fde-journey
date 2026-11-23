@@ -1,0 +1,93 @@
+Shell commands and terminal output shown in the lesson (copy what you need; not a script to run as a whole).
+
+# ===== section: Concept 1: Virtual environments =====
+# Create and use a virtual environment for day06 (macOS / Linux).
+cd fde-journey/day06
+python3 -m venv .venv  # make a private Python inside the .venv/ folder
+source .venv/bin/activate  # switch THIS terminal to that Python
+# Windows PowerShell instead:  .venv\Scripts\Activate.ps1
+# your prompt now starts with (.venv), a reminder of where you are
+which python  # Windows: where python
+# -> /Users/rohit/fde-journey/day06/.venv/bin/python
+python -m pip install requests  # lands in .venv only, nowhere else
+deactivate  # back to the system Python (or just close the terminal)
+
+# ===== section: Concept 1: Virtual environments =====
+# What is inside .venv? (you never edit these files by hand)
+.venv/
+    bin/python  # a link to the real Python, so "python" means this one
+    bin/pip  # a pip that installs into THIS environment
+    lib/python3.13/site-packages/  # installed packages live here
+        requests/  # like node_modules/axios/
+    pyvenv.cfg  # notes which Python created the environment
+
+# ===== section: Concept 2: pip and requirements.txt =====
+# pip: install, record, and recreate dependencies (venv active).
+python -m pip install "requests>=2.32,<3"  # any 2.x from 2.32 up
+python -m pip list  # everything installed in this environment
+python -m pip freeze > requirements.txt  # exact versions into a file
+cat requirements.txt  # Windows: type requirements.txt
+# -> certifi==2026.10.23
+# -> charset-normalizer==3.5.2
+# -> idna==3.20
+# -> requests==2.34.2
+# -> urllib3==2.8.0
+# one package asked for, five installed: requests needs the other four
+python -m pip install -r requirements.txt  # a teammate rebuilds yours
+
+# ===== section: Concept 2: pip and requirements.txt =====
+# The same workflow with uv, a much faster installer (optional today).
+uv venv  # creates .venv, like python -m venv .venv
+source .venv/bin/activate
+uv pip install requests  # same command shape as pip, seconds faster
+uv pip freeze > requirements.txt
+
+# ===== section: Concept 3: HTTP, the conversation every API uses =====
+# Terminal 1: start the fake CMS and leave it running.
+cd fde-journey/day06
+python mock_cms.py
+# -> mock CMS running on http://127.0.0.1:8006  (Ctrl+C to stop)
+# each request your code makes shows up here as one log line:
+# -> [mock_cms] GET /health -> 200
+
+# ===== section: Hands-on task (about 2.5 hours): day06/cms_export.py =====
+# day06/ layout for today's task
+day06/
+    mock_cms.py  # the fake customer CMS (given, do not edit)
+    cms_export.py  # YOUR CLI: fetch every entry, write a CSV
+    requirements.txt  # YOU create it with pip freeze
+    weather_csv.py  # stretch: the same idea against a real public API
+    dsa.py  # today's two DSA problems
+    day06_notes.ipynb  # runnable examples from this session
+    .venv/  # your virtual environment (git ignores it, never commit)
+
+# ===== section: Hands-on task (about 2.5 hours): day06/cms_export.py =====
+# What a correct run looks like (restart mock_cms.py first)
+$ export CMS_API_KEY=demo-key-123  # PowerShell: $env:CMS_API_KEY="..."
+$ python cms_export.py blog_post --out output/posts.csv
+page 1: 3 entries
+  HTTP 503 on skip=3, retrying in 1.0s (attempt 1 of 3)
+page 2: 3 entries
+page 3: 2 entries
+wrote 8 rows to output/posts.csv
+
+# ===== section: Hands-on task (about 2.5 hours): day06/cms_export.py =====
+# The failure cases: one clear line on stderr, no traceback
+$ CMS_API_KEY=wrong python cms_export.py blog_post
+error: HTTP 401: Invalid API key  # exit code 1, and NO retry
+$ python cms_export.py product
+error: HTTP 422: Content type 'product' was not found  # exit code 1
+$ python cms_export.py blog_post --base-url http://127.0.0.1:8999
+  connection failed on skip=0, retrying in 0.5s (attempt 1 of 3)
+  connection failed on skip=0, retrying in 1.0s (attempt 2 of 3)
+error: cannot reach http://127.0.0.1:8999 after 3 attempts  # exit 1
+$ unset CMS_API_KEY; python cms_export.py blog_post
+error: CMS_API_KEY is not set. Run: export CMS_API_KEY=demo-key-123
+# exit code 2 (wrong setup, not a server problem)
+
+# ===== section: Hands-on task (about 2.5 hours): day06/cms_export.py =====
+# output/posts.csv, first lines (long rows cut with ... here)
+uid,title,author,tags,word_count,published,updated_at
+blt001,Getting started with SSO,Priya Nair,sso|auth,820,yes,...
+blt002,"Pricing FAQ: ""Starter"" vs ""Pro"", explained",Rahul Mehta,...
+blt003,Draft: Q4 roadmap,,,150,no,2026-10-05T08:15:00Z
