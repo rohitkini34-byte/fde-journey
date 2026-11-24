@@ -1,0 +1,31 @@
+[
+  {
+    "uid": "blt001",
+    "content_type": "page",
+    "title": "Winter Sale v3",
+    "locale": "en-us",
+    "updated_at": "2026-11-24T09:00:00Z",
+    "tags": [
+      "sale",
+      "winter"
+    ]
+  },
+  {
+    "uid": "blt001",
+    "content_type": "page",
+    "title": "Sardiyon ki Sale",
+    "locale": "hi-in",
+    "updated_at": "2026-11-20T15:00:00+05:30",
+    "tags": [
+      "sale"
+    ]
+  },
+  {
+    "uid": "blt006",
+    "content_type": "page",
+    "title": "   ",
+    "locale": "en-us",
+    "updated_at": "2026-11-24T09:00:00Z",
+    "tags": []
+  }
+]

@@ -1,0 +1,64 @@
+[
+  {
+    "uid": "blt001",
+    "content_type": "page",
+    "title": "Winter Sale: 40% off",
+    "locale": "en-us",
+    "updated_at": "2026-11-23T09:00:00Z",
+    "tags": [
+      "sale",
+      "winter"
+    ]
+  },
+  {
+    "uid": "blt001",
+    "content_type": "page",
+    "title": "Sardiyon ki Sale",
+    "locale": "hi-in",
+    "updated_at": "2026-11-20T15:00:00+05:30",
+    "tags": [
+      "sale"
+    ]
+  },
+  {
+    "uid": "blt002",
+    "content_type": "page",
+    "title": "Shipping FAQ",
+    "locale": "en-us",
+    "updated_at": "2026-11-23T11:00:00Z",
+    "tags": [
+      "shipping",
+      "help"
+    ]
+  },
+  {
+    "uid": "blt003",
+    "content_type": "page",
+    "title": "Returns Policy (OLD DRAFT)",
+    "locale": "en-us",
+    "updated_at": "2026-11-10T08:00:00Z",
+    "tags": [
+      "policy"
+    ]
+  },
+  {
+    "uid": "blt004",
+    "content_type": "page",
+    "title": "About Acme",
+    "locale": "en-us",
+    "updated_at": "2026-11-21T10:00:00Z",
+    "tags": [
+      "company"
+    ]
+  },
+  {
+    "uid": "blt005",
+    "content_type": "page",
+    "title": "Store Locator",
+    "locale": "en-us",
+    "updated_at": "2026-11-23T12:00:00Z",
+    "tags": [
+      "stores"
+    ]
+  }
+]
